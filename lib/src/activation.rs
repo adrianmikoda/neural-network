@@ -19,7 +19,11 @@ impl Activation {
                 matrix.map(|x| 1.0 / (1.0 + (-x).exp()));
             }
             Activation::Softmax => {
-                let max = matrix.data.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+                let max = matrix
+                    .data
+                    .iter()
+                    .cloned()
+                    .fold(f32::NEG_INFINITY, f32::max);
                 matrix.map(|x| (x - max).exp());
                 let sum: f32 = matrix.data.iter().sum();
                 matrix.map(|x| x / sum);

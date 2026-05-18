@@ -17,7 +17,7 @@ pub(crate) struct Layer {
 impl Layer {
     pub(crate) fn new(input_size: usize, output_size: usize, activation: Activation) -> Self {
         let scale = match activation {
-            Activation::ReLU    => (2.0 / input_size as f32).sqrt(),
+            Activation::ReLU => (2.0 / input_size as f32).sqrt(),
             Activation::Sigmoid => (1.0 / input_size as f32).sqrt(),
             Activation::Softmax => (1.0 / input_size as f32).sqrt(),
         };
@@ -30,7 +30,13 @@ impl Layer {
 
         let biases = Matrix::new(output_size, 1);
 
-        Self { weights, biases, activation, inputs: None, z_values: None }
+        Self {
+            weights,
+            biases,
+            activation,
+            inputs: None,
+            z_values: None,
+        }
     }
 
     pub(crate) fn forward(&mut self, input: &Matrix) -> Matrix {

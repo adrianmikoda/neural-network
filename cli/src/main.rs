@@ -1,4 +1,5 @@
 mod args;
+mod dataset;
 
 use args::{Cli, Commands};
 use clap::Parser;

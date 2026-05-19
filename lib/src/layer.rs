@@ -1,6 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::activation::Activation;
 use crate::matrix::Matrix;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Layer {
     pub weights: Matrix,
     pub biases: Matrix,

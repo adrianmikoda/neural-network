@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Matrix {
     pub rows: usize,
     pub cols: usize,
@@ -27,5 +30,12 @@ impl Matrix {
 
     pub(crate) fn dot(&self, other: &Matrix) -> Matrix {
         todo!()
+    }
+
+    pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> std::io::Result<()> {
+        let serialized = bincode::serialize(self).map_err(std::io::Error::other)?;
+
+        std::fs::write(path, serialized)?;
+        Ok(())
     }
 }

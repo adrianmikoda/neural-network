@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::matrix::Matrix;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Activation {
     ReLU,
     Sigmoid,

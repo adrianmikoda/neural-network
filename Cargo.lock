@@ -782,6 +782,7 @@ dependencies = [
  "clap",
  "indicatif",
  "lib",
+ "rand",
 ]
 
 [[package]]

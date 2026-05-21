@@ -1,4 +1,5 @@
 mod args;
+mod augmentation;
 mod dataset;
 
 use args::{Cli, Commands};
@@ -25,7 +26,6 @@ fn main() {
             .expect("Failed to load training dataset");
 
             let network = NeuralNetwork::with_input(784);
-            // TODO: add hidden and output layers once the builder is ready
 
             println!("Starting training for {} epochs...", epochs);
 
@@ -38,11 +38,13 @@ fn main() {
                 );
                 pb.set_message(epoch.to_string());
 
-                for (i, _image) in dataset.images.iter().enumerate() {
+                for (i, image) in dataset.images.iter().enumerate() {
+                    let _augmented_image = augmentation::augment_image(image);
+
                     let mut _target = [0.0f32; 10];
                     _target[dataset.labels[i] as usize] = 1.0;
 
-                    // TODO: network.train(_image, &_target, *learning_rate);
+                    // TODO: network.train(&_augmented_image, &_target, *learning_rate);
 
                     pb.inc(1);
                 }

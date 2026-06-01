@@ -3,8 +3,8 @@ use crate::config::ModelConfig;
 use crate::downsample::average_pooling;
 use eframe::egui;
 use eframe::egui::ColorImage;
-use lib::network::NeuralNetwork;
 use lib::Activation;
+use lib::network::NeuralNetwork;
 
 pub struct NeuralApp {
     config: ModelConfig,
@@ -20,7 +20,10 @@ impl NeuralApp {
         let network = if model_path.exists() {
             println!("Loading model from model.bin...");
             NeuralNetwork::load(model_path).unwrap_or_else(|e| {
-                eprintln!("Failed to load model.bin, falling back to random weights: {}", e);
+                eprintln!(
+                    "Failed to load model.bin, falling back to random weights: {}",
+                    e
+                );
                 NeuralNetwork::with_input(config.input_width * config.input_height)
                     .add_layer(Activation::ReLU, 128)
                     .add_layer(Activation::Softmax, config.labels.len())

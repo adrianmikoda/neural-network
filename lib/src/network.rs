@@ -42,18 +42,21 @@ impl NeuralNetwork {
         }
         let a_l = current;
 
-        let loss = if matches!(self.layers.last().map(|l| &l.activation), Some(Activation::Softmax)) {
+        let loss = if matches!(
+            self.layers.last().map(|l| &l.activation),
+            Some(Activation::Softmax)
+        ) {
             let mut sum = 0.0;
-            for i in 0..a_l.data.len() {
-                if target[i] > 0.0 {
-                    sum -= target[i] * a_l.data[i].max(1e-15).ln();
+            for (&val, &t) in a_l.data.iter().zip(target) {
+                if t > 0.0 {
+                    sum -= t * val.max(1e-15).ln();
                 }
             }
             sum
         } else {
             let mut sum = 0.0;
-            for i in 0..a_l.data.len() {
-                let diff = a_l.data[i] - target[i];
+            for (&val, &t) in a_l.data.iter().zip(target) {
+                let diff = val - t;
                 sum += diff * diff;
             }
             sum / a_l.data.len() as f32
@@ -63,14 +66,16 @@ impl NeuralNetwork {
         let last_idx = self.layers.len() - 1;
 
         let mut delta = a_l.clone();
-        for i in 0..delta.data.len() {
-            delta.data[i] -= target[i];
+        for (val, &t) in delta.data.iter_mut().zip(target) {
+            *val -= t;
         }
         if !matches!(self.layers[last_idx].activation, Activation::Softmax) {
             let mut z_deriv = self.layers[last_idx].z_values.clone().unwrap();
-            self.layers[last_idx].activation.apply_derivative(&mut z_deriv);
-            for i in 0..delta.data.len() {
-                delta.data[i] *= z_deriv.data[i];
+            self.layers[last_idx]
+                .activation
+                .apply_derivative(&mut z_deriv);
+            for (val, &z) in delta.data.iter_mut().zip(&z_deriv.data) {
+                *val *= z;
             }
         }
         deltas.push(delta);
@@ -85,26 +90,24 @@ impl NeuralNetwork {
             let current_layer = &self.layers[l];
             let mut z_deriv = current_layer.z_values.clone().unwrap();
             current_layer.activation.apply_derivative(&mut z_deriv);
-            for i in 0..delta_hidden.data.len() {
-                delta_hidden.data[i] *= z_deriv.data[i];
+            for (val, &z) in delta_hidden.data.iter_mut().zip(&z_deriv.data) {
+                *val *= z;
             }
             deltas.push(delta_hidden);
         }
 
         deltas.reverse();
 
-        for l in 0..self.layers.len() {
-            let current_layer = &mut self.layers[l];
-            let delta_l = &deltas[l];
+        for (current_layer, delta_l) in self.layers.iter_mut().zip(&deltas) {
             let inputs_trans = current_layer.inputs.clone().unwrap().transpose();
             let grad_w = delta_l.dot(&inputs_trans);
             let grad_b = delta_l;
 
-            for i in 0..current_layer.weights.data.len() {
-                current_layer.weights.data[i] -= learning_rate * grad_w.data[i];
+            for (w, &gw) in current_layer.weights.data.iter_mut().zip(&grad_w.data) {
+                *w -= learning_rate * gw;
             }
-            for i in 0..current_layer.biases.data.len() {
-                current_layer.biases.data[i] -= learning_rate * grad_b.data[i];
+            for (b, &gb) in current_layer.biases.data.iter_mut().zip(&grad_b.data) {
+                *b -= learning_rate * gb;
             }
         }
 

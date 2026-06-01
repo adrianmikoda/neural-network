@@ -5,8 +5,8 @@ mod dataset;
 use args::{Cli, Commands};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
-use lib::network::NeuralNetwork;
 use lib::Activation;
+use lib::network::NeuralNetwork;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -41,8 +41,8 @@ fn main() {
             output,
         } => {
             println!("Parsing network config from {:?}...", config);
-            let config_content = std::fs::read_to_string(config)
-                .expect("Failed to read configuration file");
+            let config_content =
+                std::fs::read_to_string(config).expect("Failed to read configuration file");
             let net_config: NetworkConfig = serde_json::from_str(&config_content)
                 .expect("Failed to parse network configuration JSON");
 
@@ -107,8 +107,8 @@ fn main() {
             let pb = ProgressBar::new(dataset.images.len() as u64);
             pb.set_style(
                 ProgressStyle::default_bar()
-                     .template("[{elapsed_precise}] Evaluating [{bar:40}] {pos}/{len}")
-                     .unwrap(),
+                    .template("[{elapsed_precise}] Evaluating [{bar:40}] {pos}/{len}")
+                    .unwrap(),
             );
 
             let mut correct = 0;
@@ -134,4 +134,3 @@ fn main() {
         }
     }
 }
-

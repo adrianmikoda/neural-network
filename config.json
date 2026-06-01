@@ -2,5 +2,6 @@
   "layers": [
     { "neurons": 128, "activation": "ReLU" },
     { "neurons": 10, "activation": "Softmax" }
-  ]
+  ],
+  "batch_size": 1
 }

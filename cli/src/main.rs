@@ -18,6 +18,7 @@ struct LayerConfig {
 #[derive(Deserialize, Debug)]
 struct NetworkConfig {
     layers: Vec<LayerConfig>,
+    batch_size: Option<usize>,
 }
 
 fn argmax(slice: &[f32]) -> usize {
@@ -45,6 +46,7 @@ fn main() {
                 std::fs::read_to_string(config).expect("Failed to read configuration file");
             let net_config: NetworkConfig = serde_json::from_str(&config_content)
                 .expect("Failed to parse network configuration JSON");
+            let batch_size = net_config.batch_size.unwrap_or(1);
 
             println!("Loading training data...");
             let dataset = dataset::Dataset::load(
@@ -70,17 +72,33 @@ fn main() {
                 pb.set_message(epoch.to_string());
 
                 let mut total_loss = 0.0;
+                let num_images = dataset.images.len();
 
-                for (i, image) in dataset.images.iter().enumerate() {
-                    let augmented_image = augmentation::augment_image(image);
+                for batch_start in (0..num_images).step_by(batch_size) {
+                    let batch_end = std::cmp::min(batch_start + batch_size, num_images);
 
-                    let mut target = [0.0f32; 10];
-                    target[dataset.labels[i] as usize] = 1.0;
+                    let mut batch_inputs = Vec::with_capacity(batch_end - batch_start);
+                    let mut batch_targets = Vec::with_capacity(batch_end - batch_start);
 
-                    let loss = network.train_on_batch(&augmented_image, &target, *learning_rate);
-                    total_loss += loss;
+                    for j in batch_start..batch_end {
+                        let image = &dataset.images[j];
+                        let augmented_image = augmentation::augment_image(image);
+                        batch_inputs.push(augmented_image);
 
-                    pb.inc(1);
+                        let mut target = vec![0.0f32; 10];
+                        target[dataset.labels[j] as usize] = 1.0;
+                        batch_targets.push(target);
+                    }
+
+                    let input_refs: Vec<&[f32]> =
+                        batch_inputs.iter().map(|v| v.as_slice()).collect();
+                    let target_refs: Vec<&[f32]> =
+                        batch_targets.iter().map(|v| v.as_slice()).collect();
+
+                    let loss = network.train_batch(&input_refs, &target_refs, *learning_rate);
+                    total_loss += loss * (batch_end - batch_start) as f32;
+
+                    pb.inc((batch_end - batch_start) as u64);
                 }
                 pb.finish();
                 println!(

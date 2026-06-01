@@ -221,6 +221,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
+ "lib",
  "rand",
  "serde",
  "serde_json",
@@ -783,6 +784,8 @@ dependencies = [
  "indicatif",
  "lib",
  "rand",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

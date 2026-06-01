@@ -1,13 +1,14 @@
 use crate::canvas::CanvasState;
 use crate::config::ModelConfig;
 use crate::downsample::average_pooling;
-use crate::mock::MockNetwork;
 use eframe::egui;
 use eframe::egui::ColorImage;
+use lib::network::NeuralNetwork;
+use lib::Activation;
 
 pub struct NeuralApp {
     config: ModelConfig,
-    network: MockNetwork,
+    network: NeuralNetwork,
     canvas: CanvasState,
     texture: Option<egui::TextureHandle>,
     predictions: Vec<f32>,
@@ -15,7 +16,21 @@ pub struct NeuralApp {
 
 impl NeuralApp {
     pub fn new(cc: &eframe::CreationContext<'_>, config: ModelConfig) -> Self {
-        let network = MockNetwork::new(config.labels.len());
+        let model_path = std::path::Path::new("model.bin");
+        let network = if model_path.exists() {
+            println!("Loading model from model.bin...");
+            NeuralNetwork::load(model_path).unwrap_or_else(|e| {
+                eprintln!("Failed to load model.bin, falling back to random weights: {}", e);
+                NeuralNetwork::with_input(config.input_width * config.input_height)
+                    .add_layer(Activation::ReLU, 128)
+                    .add_layer(Activation::Softmax, config.labels.len())
+            })
+        } else {
+            println!("model.bin not found. GUI running with random weights.");
+            NeuralNetwork::with_input(config.input_width * config.input_height)
+                .add_layer(Activation::ReLU, 128)
+                .add_layer(Activation::Softmax, config.labels.len())
+        };
         let canvas = CanvasState::new(config.input_width * 10, config.input_height * 10);
         let predictions = vec![0.0; config.labels.len()];
 

@@ -2,7 +2,6 @@ mod app;
 mod canvas;
 mod config;
 mod downsample;
-mod mock;
 
 use app::NeuralApp;
 use config::ModelConfig;

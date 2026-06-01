@@ -6,18 +6,46 @@ use args::{Cli, Commands};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use lib::network::NeuralNetwork;
+use lib::Activation;
+use serde::Deserialize;
+
+#[derive(Deserialize, Debug)]
+struct LayerConfig {
+    neurons: usize,
+    activation: Activation,
+}
+
+#[derive(Deserialize, Debug)]
+struct NetworkConfig {
+    layers: Vec<LayerConfig>,
+}
+
+fn argmax(slice: &[f32]) -> usize {
+    slice
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(index, _)| index)
+        .unwrap_or(0)
+}
 
 fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
         Commands::Train {
-            config: _,
+            config,
             data_dir,
             epochs,
-            learning_rate: _,
+            learning_rate,
             output,
         } => {
+            println!("Parsing network config from {:?}...", config);
+            let config_content = std::fs::read_to_string(config)
+                .expect("Failed to read configuration file");
+            let net_config: NetworkConfig = serde_json::from_str(&config_content)
+                .expect("Failed to parse network configuration JSON");
+
             println!("Loading training data...");
             let dataset = dataset::Dataset::load(
                 data_dir.join("train-images-idx3-ubyte"),
@@ -25,7 +53,10 @@ fn main() {
             )
             .expect("Failed to load training dataset");
 
-            let network = NeuralNetwork::with_input(784);
+            let mut network = NeuralNetwork::with_input(784);
+            for layer in &net_config.layers {
+                network = network.add_layer(layer.activation.clone(), layer.neurons);
+            }
 
             println!("Starting training for {} epochs...", epochs);
 
@@ -38,17 +69,25 @@ fn main() {
                 );
                 pb.set_message(epoch.to_string());
 
+                let mut total_loss = 0.0;
+
                 for (i, image) in dataset.images.iter().enumerate() {
-                    let _augmented_image = augmentation::augment_image(image);
+                    let augmented_image = augmentation::augment_image(image);
 
-                    let mut _target = [0.0f32; 10];
-                    _target[dataset.labels[i] as usize] = 1.0;
+                    let mut target = [0.0f32; 10];
+                    target[dataset.labels[i] as usize] = 1.0;
 
-                    // TODO: network.train(&_augmented_image, &_target, *learning_rate);
+                    let loss = network.train_on_batch(&augmented_image, &target, *learning_rate);
+                    total_loss += loss;
 
                     pb.inc(1);
                 }
                 pb.finish();
+                println!(
+                    "Epoch {} completed. Average Loss: {:.4}",
+                    epoch,
+                    total_loss / dataset.images.len() as f32
+                );
             }
 
             network.save(output).expect("Failed to save model");
@@ -63,22 +102,20 @@ fn main() {
             )
             .expect("Failed to load test dataset");
 
-            let _network = NeuralNetwork::load(model).expect("Failed to load model weights");
+            let mut network = NeuralNetwork::load(model).expect("Failed to load model weights");
 
             let pb = ProgressBar::new(dataset.images.len() as u64);
             pb.set_style(
                 ProgressStyle::default_bar()
-                    .template("[{elapsed_precise}] Evaluating [{bar:40}] {pos}/{len}")
-                    .unwrap(),
+                     .template("[{elapsed_precise}] Evaluating [{bar:40}] {pos}/{len}")
+                     .unwrap(),
             );
 
             let mut correct = 0;
 
-            for (i, _image) in dataset.images.iter().enumerate() {
-                // TODO: let prediction = network.predict(_image);
-                // TODO: let predicted_label = argmax(&prediction);
-
-                let predicted_label = 0;
+            for (i, image) in dataset.images.iter().enumerate() {
+                let prediction = network.predict(image);
+                let predicted_label = argmax(&prediction);
 
                 if predicted_label == dataset.labels[i] as usize {
                     correct += 1;
@@ -97,3 +134,4 @@ fn main() {
         }
     }
 }
+
